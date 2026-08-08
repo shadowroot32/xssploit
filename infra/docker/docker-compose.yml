@@ -28,9 +28,9 @@ services:
       LOG_LEVEL: info
     volumes:
       - api-data:/data
+    ports:
+      - "4000:4000"
     networks: [xssploit]
-    # Not published to the host — only reachable via the reverse proxy
-    # (or `docker compose exec`) unless you explicitly add a ports: entry.
 
   dashboard:
     build:
@@ -40,6 +40,8 @@ services:
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
         NEXT_PUBLIC_LOCAL_AUTH_TOKEN: ${NEXT_PUBLIC_LOCAL_AUTH_TOKEN:-}
     restart: unless-stopped
+    ports:
+      - "3000:3000"
     networks: [xssploit]
 
   callback:
@@ -54,6 +56,8 @@ services:
       CALLBACK_PUBLIC_BASE: ${CALLBACK_PUBLIC_BASE:-http://localhost:5001}
     volumes:
       - callback-data:/data/callbacks
+    ports:
+      - "5001:5001"
     networks: [xssploit]
 
 networks:
