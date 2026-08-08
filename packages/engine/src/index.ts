@@ -26,3 +26,11 @@ export { NotificationManager } from './core/callback/notification.js';
 export { DataCollector } from './core/callback/data-collector.js';
 export { ReportBuilder } from './reports/generator/report-builder.js';
 export { encoders } from './utils/encoder.js';
+export {
+  loadSettings,
+  saveAISettings,
+  resolveAISettings,
+  hasFileValue,
+  type AISettings,
+  type SettingsFile,
+} from './utils/settings-store.js';

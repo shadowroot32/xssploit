@@ -1,4 +1,5 @@
 import { SettingsForm } from './settings-form';
+import { AIKeysForm } from './ai-keys-form';
 
 export const metadata = { title: 'Settings — XSSPLOIT' };
 
@@ -10,15 +11,10 @@ export default function SettingsPage() {
         <h3 className="font-semibold text-white">AI providers</h3>
         <p className="text-zinc-400">
           Tiered fallback order: <b>Claude → Antigravity → DeepSeek → Ollama → rules-only</b>.
-          Keys are read from the API server environment:
+          Providers without a key are skipped automatically; Ollama needs no key, just a reachable URL.
         </p>
-        <ul className="list-inside list-disc space-y-1 text-zinc-400">
-          <li><code>ANTHROPIC_API_KEY</code> — Claude analysis</li>
-          <li><code>ANTIGRAVITY_API_KEY</code> / <code>ANTIGRAVITY_BASE_URL</code></li>
-          <li><code>DEEPSEEK_API_KEY</code> — OpenAI-compatible fallback</li>
-          <li><code>OLLAMA_BASE_URL</code> — local model, default http://127.0.0.1:11434</li>
-        </ul>
       </div>
+      <AIKeysForm />
       <SettingsForm />
     </div>
   );

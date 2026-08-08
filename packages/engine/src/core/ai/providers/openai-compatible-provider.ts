@@ -1,9 +1,13 @@
 import { BaseAIProvider, type AIResponse, type PayloadSuggestionRequest, type VulnClassification } from './base-provider.js';
 import { HTTPClient } from '../../../utils/http-client.js';
+import { resolveAISettings } from '../../../utils/settings-store.js';
 
 /**
  * Generic OpenAI-compatible chat-completions provider. Backs both
  * Antigravity (tier 2) and DeepSeek (tier 3) — they share the API shape.
+ * When constructed without explicit values, resolves from the settings
+ * file (dashboard) → env vars → defaults, lazily on each call so saves
+ * from the Settings page take effect on the next request.
  */
 export class OpenAICompatibleProvider extends BaseAIProvider {
   private readonly http = new HTTPClient();
@@ -17,17 +21,35 @@ export class OpenAICompatibleProvider extends BaseAIProvider {
     super();
   }
 
+  /** Overridable config accessors (lazy subclasses resolve per-call). */
+  protected url(): string {
+    return this.baseUrl;
+  }
+
+  protected key(): string {
+    return this.apiKey;
+  }
+
+  protected modelName(): string {
+    return this.model;
+  }
+
   isAvailable(): boolean {
-    return this.apiKey.length > 0 && this.baseUrl.length > 0;
+    return this.key().length > 0 && this.url().length > 0;
+  }
+
+  /** Create lazily-resolved variant (no constructor args). */
+  static lazy(name: 'antigravity' | 'deepseek'): OpenAICompatibleProvider {
+    return new LazyOpenAICompatibleProvider(name);
   }
 
   private async chat(prompt: string, maxTokens: number): Promise<AIResponse> {
-    const res = await this.http.fetch(`${this.baseUrl.replace(/\/$/, '')}/chat/completions`, {
+    const res = await this.http.fetch(`${this.url().replace(/\/$/, '')}/chat/completions`, {
       method: 'POST',
       timeoutMs: 30_000,
-      headers: { 'content-type': 'application/json', authorization: `Bearer ${this.apiKey}` },
+      headers: { 'content-type': 'application/json', authorization: `Bearer ${this.key()}` },
       body: JSON.stringify({
-        model: this.model,
+        model: this.modelName(),
         max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
       }),
@@ -86,22 +108,38 @@ export class OpenAICompatibleProvider extends BaseAIProvider {
   }
 }
 
+/** Lazily resolves baseUrl/apiKey from the settings store on every call. */
+class LazyOpenAICompatibleProvider extends OpenAICompatibleProvider {
+  constructor(providerName: 'antigravity' | 'deepseek') {
+    super(providerName, '', '', '');
+  }
+
+  private cfg(): { baseUrl: string; apiKey: string; model: string } {
+    const s = resolveAISettings();
+    return this.name === 'antigravity'
+      ? { baseUrl: s.antigravityBaseUrl, apiKey: s.antigravityApiKey, model: 'antigravity-pro' }
+      : { baseUrl: s.deepseekBaseUrl, apiKey: s.deepseekApiKey, model: 'deepseek-chat' };
+  }
+
+  protected override url(): string {
+    return this.cfg().baseUrl;
+  }
+
+  protected override key(): string {
+    return this.cfg().apiKey;
+  }
+
+  protected override modelName(): string {
+    return this.cfg().model;
+  }
+}
+
 /** Tier-2 factory. */
 export function antigravityProvider(): OpenAICompatibleProvider {
-  return new OpenAICompatibleProvider(
-    'antigravity',
-    process.env.ANTIGRAVITY_BASE_URL ?? 'https://api.antigravity.ai/v1',
-    process.env.ANTIGRAVITY_API_KEY ?? '',
-    'antigravity-pro',
-  );
+  return OpenAICompatibleProvider.lazy('antigravity');
 }
 
 /** Tier-3 factory. */
 export function deepseekProvider(): OpenAICompatibleProvider {
-  return new OpenAICompatibleProvider(
-    'deepseek',
-    process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
-    process.env.DEEPSEEK_API_KEY ?? '',
-    'deepseek-chat',
-  );
+  return OpenAICompatibleProvider.lazy('deepseek');
 }

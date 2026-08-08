@@ -1,4 +1,5 @@
 import { api } from '@/lib/api';
+import { AddPayloads } from './add-payloads';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,7 +13,10 @@ export default async function PayloadsPage() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">Payload Library</h2>
-        <span className="badge border-accent-500 text-accent-400">{total} payloads · {categories.length} categories</span>
+        <div className="flex items-center gap-3">
+          <span className="badge border-accent-500 text-accent-400">{total} payloads · {categories.length} categories</span>
+          <AddPayloads existingCategories={categories.map((c) => c.category)} />
+        </div>
       </div>
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {categories.map((c) => (

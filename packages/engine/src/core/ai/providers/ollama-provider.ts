@@ -1,18 +1,25 @@
 import { BaseAIProvider, type AIResponse, type PayloadSuggestionRequest, type VulnClassification } from './base-provider.js';
 import { HTTPClient } from '../../../utils/http-client.js';
+import { resolveAISettings } from '../../../utils/settings-store.js';
 
 /**
  * Local Ollama provider (tier 4) — zero-cost, offline fallback.
+ * Host/model resolve lazily: settings file (dashboard) → env → default.
  */
 export class OllamaProvider extends BaseAIProvider {
   readonly name = 'ollama';
   private readonly http = new HTTPClient();
 
   constructor(
-    private readonly host = process.env.OLLAMA_BASE_URL ?? process.env.OLLAMA_HOST ?? 'http://localhost:11434',
-    private readonly model = process.env.OLLAMA_MODEL ?? 'llama3.1:8b',
+    private readonly host?: string,
+    private readonly model?: string,
   ) {
     super();
+  }
+
+  private get base(): { host: string; model: string } {
+    const s = resolveAISettings();
+    return { host: this.host ?? s.ollamaBaseUrl, model: this.model ?? s.ollamaModel };
   }
 
   isAvailable(): boolean {
@@ -20,11 +27,12 @@ export class OllamaProvider extends BaseAIProvider {
   }
 
   private async generate(prompt: string): Promise<AIResponse> {
-    const res = await this.http.fetch(`${this.host}/api/generate`, {
+    const { host, model } = this.base;
+    const res = await this.http.fetch(`${host}/api/generate`, {
       method: 'POST',
       timeoutMs: 60_000,
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ model: this.model, prompt, stream: false }),
+      body: JSON.stringify({ model, prompt, stream: false }),
     });
     const json = JSON.parse(res.body) as { response?: string; eval_count?: number; prompt_eval_count?: number };
     return {

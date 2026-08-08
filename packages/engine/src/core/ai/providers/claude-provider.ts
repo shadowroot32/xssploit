@@ -1,21 +1,27 @@
 import { BaseAIProvider, type AIResponse, type PayloadSuggestionRequest, type VulnClassification } from './base-provider.js';
 import { HTTPClient } from '../../../utils/http-client.js';
+import { resolveAISettings } from '../../../utils/settings-store.js';
 
 /**
  * Anthropic Claude provider (tier 1). Uses the Messages API directly via
  * undici so the engine has no heavyweight SDK dependency.
+ * Key resolution: settings file (dashboard) → ANTHROPIC_API_KEY env.
  */
 export class ClaudeProvider extends BaseAIProvider {
   readonly name = 'claude';
   private readonly http = new HTTPClient();
   private readonly model = 'claude-sonnet-4-20250514';
 
-  constructor(private readonly apiKey = process.env.ANTHROPIC_API_KEY ?? '') {
+  constructor(private readonly apiKey?: string) {
     super();
   }
 
+  private get key(): string {
+    return this.apiKey ?? resolveAISettings().anthropicApiKey;
+  }
+
   isAvailable(): boolean {
-    return this.apiKey.length > 0;
+    return this.key.length > 0;
   }
 
   private async messages(prompt: string, maxTokens: number): Promise<AIResponse> {
@@ -24,7 +30,7 @@ export class ClaudeProvider extends BaseAIProvider {
       timeoutMs: 30_000,
       headers: {
         'content-type': 'application/json',
-        'x-api-key': this.apiKey,
+        'x-api-key': this.key,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({

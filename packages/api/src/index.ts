@@ -9,6 +9,7 @@ import { payloadRoutes } from './routes/payloads.js';
 import { callbackRoutes } from './routes/callbacks.js';
 import { reportRoutes } from './routes/reports.js';
 import { webhookRoutes } from './routes/webhooks.js';
+import { settingsRoutes } from './routes/settings.js';
 import { createLogger } from './utils/logger.js';
 
 const logger = createLogger('api');
@@ -43,6 +44,7 @@ export async function buildServer() {
     await protected_.register(callbackRoutes, { prefix: '/api/callbacks' });
     await protected_.register(reportRoutes, { prefix: '/api/reports' });
     await protected_.register(webhookRoutes, { prefix: '/api/webhooks' });
+    await protected_.register(settingsRoutes, { prefix: '/api/settings' });
   });
 
   return app;

@@ -49,6 +49,35 @@ async function post<T>(path: string, body: unknown): Promise<T> {
   return data;
 }
 
+async function put<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${BASE}${path}`, { method: 'PUT', headers: headers(), body: JSON.stringify(body) });
+  const data = (await res.json().catch(() => ({}))) as T & { error?: string };
+  if (!res.ok) throw new Error(data.error ?? `API ${res.status}`);
+  return data;
+}
+
+export interface SecretField {
+  set: boolean;
+  preview: string | null;
+  source: 'settings' | 'env' | 'unset';
+}
+
+export interface PlainField {
+  value: string;
+  source: 'settings' | 'env' | 'default';
+}
+
+export interface AISettingsView {
+  anthropicApiKey: SecretField;
+  antigravityApiKey: SecretField;
+  deepseekApiKey: SecretField;
+  antigravityBaseUrl: PlainField;
+  deepseekBaseUrl: PlainField;
+  ollamaBaseUrl: PlainField;
+  ollamaModel: PlainField;
+  updatedAt: string | null;
+}
+
 export const api = {
   listScans: () => get<{ scans: ScanRow[] }>('/api/scans'),
   getScan: (id: string) => get<{ scan: ScanRow }>(`/api/scans/${id}`),
@@ -61,6 +90,11 @@ export const api = {
     get<{ preview: Record<string, string[]>; loaded: number }>(
       `/api/payloads/preview${cats?.length ? `?categories=${encodeURIComponent(cats.join(','))}` : ''}`,
     ),
+  addPayloads: (category: string, payloads: string[]) =>
+    post<{ ok: boolean; added: number; skipped: number; file: string }>('/api/payloads', { category, payloads }),
+  getSettings: () => get<{ ai: AISettingsView }>('/api/settings'),
+  saveAISettings: (patch: Record<string, string>) =>
+    put<{ ok: boolean; ai: AISettingsView }>('/api/settings/ai', patch),
   listCallbacks: () =>
     get<{ callbacks: Record<string, unknown>[] }>('/api/callbacks'),
   listReports: (scanId?: string) =>
