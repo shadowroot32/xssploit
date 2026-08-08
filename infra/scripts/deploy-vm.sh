@@ -48,7 +48,7 @@ else
 fi
 
 echo "==> 4/6 Docker build & up"
-docker compose -f infra/docker/docker-compose.yml up -d --build
+docker compose --env-file .env -f infra/docker/docker-compose.yml up -d --build
 
 echo "==> 5/6 nginx"
 sudo apt-get update -qq
@@ -95,4 +95,4 @@ echo ""
 echo "   NOTE: CALLBACK payloads point at https://${FQDN}:5001 —"
 echo "   after HTTPS works you may prefer /cb/ proxy path (port 443):"
 echo "   sed -i 's|CALLBACK_PUBLIC_BASE=.*|CALLBACK_PUBLIC_BASE=https://${FQDN}/cb|; s|CALLBACK_DOMAIN=.*|CALLBACK_DOMAIN=${FQDN}/cb|' .env && \\"
-echo "   docker compose -f infra/docker/docker-compose.yml up -d"
+echo "   docker compose --env-file .env -f infra/docker/docker-compose.yml up -d"
