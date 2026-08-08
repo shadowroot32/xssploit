@@ -10,14 +10,17 @@ import { resolveAISettings } from '../../../utils/settings-store.js';
 export class ClaudeProvider extends BaseAIProvider {
   readonly name = 'claude';
   private readonly http = new HTTPClient();
-  private readonly model = 'claude-sonnet-4-20250514';
 
-  constructor(private readonly apiKey?: string) {
+  constructor(private readonly apiKey?: string, private readonly model?: string) {
     super();
   }
 
   private get key(): string {
     return this.apiKey ?? resolveAISettings().anthropicApiKey;
+  }
+
+  private get modelName(): string {
+    return this.model ?? resolveAISettings().anthropicModel;
   }
 
   isAvailable(): boolean {
@@ -34,7 +37,7 @@ export class ClaudeProvider extends BaseAIProvider {
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: this.model,
+        model: this.modelName,
         max_tokens: maxTokens,
         messages: [{ role: 'user', content: prompt }],
       }),

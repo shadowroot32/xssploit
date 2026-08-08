@@ -1,163 +1,211 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { api, type AISettingsView } from '@/lib/api';
+import { api, AISettingsView, PlainField } from '../../lib/api';
 
-type SecretKey = 'anthropicApiKey' | 'antigravityApiKey' | 'deepseekApiKey';
-type PlainKey = 'antigravityBaseUrl' | 'deepseekBaseUrl' | 'ollamaBaseUrl' | 'ollamaModel';
+const SECRET_KEYS = ['anthropicApiKey', 'antigravityApiKey', 'deepseekApiKey'] as const;
+type SecretKey = (typeof SECRET_KEYS)[number];
 
-const SECRET_FIELDS: { key: SecretKey; label: string; hint: string }[] = [
-  { key: 'anthropicApiKey', label: 'Claude (Anthropic) API key', hint: 'tier 1 — console.anthropic.com' },
-  { key: 'antigravityApiKey', label: 'Antigravity API key', hint: 'tier 2 — OpenAI-compatible' },
-  { key: 'deepseekApiKey', label: 'DeepSeek API key', hint: 'tier 3 — platform.deepseek.com' },
-];
-
-const PLAIN_FIELDS: { key: PlainKey; label: string }[] = [
-  { key: 'antigravityBaseUrl', label: 'Antigravity base URL' },
-  { key: 'deepseekBaseUrl', label: 'DeepSeek base URL' },
-  { key: 'ollamaBaseUrl', label: 'Ollama base URL (tier 4)' },
-  { key: 'ollamaModel', label: 'Ollama model' },
-];
-
-const EMPTY: AISettingsView = {
-  anthropicApiKey: { set: false, preview: null, source: 'unset' },
-  antigravityApiKey: { set: false, preview: null, source: 'unset' },
-  deepseekApiKey: { set: false, preview: null, source: 'unset' },
-  antigravityBaseUrl: { value: '', source: 'default' },
-  deepseekBaseUrl: { value: '', source: 'default' },
-  ollamaBaseUrl: { value: '', source: 'default' },
-  ollamaModel: { value: '', source: 'default' },
-  updatedAt: null,
+const LABEL: Record<string, string> = {
+  anthropicApiKey: 'Anthropic (Claude)',
+  antigravityApiKey: 'Antigravity',
+  deepseekApiKey: 'DeepSeek',
 };
 
-function SourceBadge({ source }: { source: string }) {
-  const color =
-    source === 'settings' ? 'border-emerald-500 text-emerald-400'
-    : source === 'env' ? 'border-sky-500 text-sky-400'
-    : 'border-base-700 text-zinc-500';
-  return <span className={`badge ${color}`}>{source}</span>;
+/** Known model presets shown in the per-provider pickers; custom values stay editable. */
+const MODEL_PRESETS: Record<string, string[]> = {
+  anthropicModel: ['claude-sonnet-4-20250514', 'claude-opus-4-1', 'claude-haiku-4-5'],
+  antigravityModel: ['antigravity-pro', 'antigravity-flash'],
+  deepseekModel: ['deepseek-chat', 'deepseek-reasoner'],
+};
+
+const PREFERRED = [
+  { value: 'auto', label: 'Auto — tiered fallback (Claude → Antigravity → DeepSeek → Ollama)' },
+  { value: 'claude', label: 'Claude only' },
+  { value: 'antigravity', label: 'Antigravity only' },
+  { value: 'deepseek', label: 'DeepSeek only' },
+  { value: 'ollama', label: 'Ollama (local) only' },
+  { value: 'none', label: 'None — rule-based scan, no AI' },
+];
+
+function SourceBadge({ source }: { source: PlainField['source'] | 'unset' | 'default' }) {
+  const style =
+    source === 'settings'
+      ? 'bg-emerald-900/50 text-emerald-300'
+      : source === 'env'
+        ? 'bg-sky-900/50 text-sky-300'
+        : 'bg-zinc-800 text-zinc-400';
+  return <span className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${style}`}>{source}</span>;
 }
 
-/**
- * AI provider key management. Secrets are write-only from the browser:
- * the API returns masked previews, never the raw key.
- */
 export function AIKeysForm() {
-  const [view, setView] = useState<AISettingsView>(EMPTY);
-  const [secrets, setSecrets] = useState<Record<SecretKey, string>>({
-    anthropicApiKey: '',
-    antigravityApiKey: '',
-    deepseekApiKey: '',
-  });
-  const [plains, setPlains] = useState<Record<PlainKey, string>>({
-    antigravityBaseUrl: '',
-    deepseekBaseUrl: '',
-    ollamaBaseUrl: '',
-    ollamaModel: '',
-  });
-  const [status, setStatus] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
+  const [view, setView] = useState<AISettingsView | null>(null);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [ollamaModels, setOllamaModels] = useState<string[] | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    api.getSettings()
-      .then(({ ai }) => {
-        setView(ai);
-        setPlains({
-          antigravityBaseUrl: ai.antigravityBaseUrl.value,
-          deepseekBaseUrl: ai.deepseekBaseUrl.value,
-          ollamaBaseUrl: ai.ollamaBaseUrl.value,
-          ollamaModel: ai.ollamaModel.value,
-        });
-      })
-      .catch((e: Error) => setStatus(`❌ ${e.message}`));
+    api.getSettings().then((r) => setView(r.ai)).catch((e) => setError(String(e)));
+    api.getOllamaModels().then((r) => setOllamaModels(r.reachable ? r.models : [])).catch(() => setOllamaModels([]));
   }, []);
 
+  if (!view) return <p className="text-zinc-400">{error || 'Loading…'}</p>;
+
+  const val = (k: string) => draft[k] ?? '';
+  const setVal = (k: string, v: string) => setDraft((d) => ({ ...d, [k]: v }));
+
+  const modelValue = (k: 'anthropicModel' | 'antigravityModel' | 'deepseekModel' | 'ollamaModel') =>
+    draft[k] !== undefined && draft[k] !== '' ? draft[k]! : (view[k].value ?? '');
+
   async function save() {
-    setBusy(true);
-    setStatus(null);
+    setSaving(true);
+    setMessage('');
+    setError('');
     try {
-      const body: Record<string, string> = {};
-      for (const f of SECRET_FIELDS) if (secrets[f.key].trim()) body[f.key] = secrets[f.key].trim();
-      for (const f of PLAIN_FIELDS) if (plains[f.key].trim()) body[f.key] = plains[f.key].trim();
-      const { ai } = await api.saveAISettings(body);
-      setView(ai);
-      setSecrets({ anthropicApiKey: '', antigravityApiKey: '', deepseekApiKey: '' });
-      setStatus('✅ Saved — active on the next AI request (no restart needed).');
-    } catch (err) {
-      setStatus(`❌ ${(err as Error).message}`);
+      const patch: Record<string, string> = {};
+      for (const [k, v] of Object.entries(draft)) if (v.trim() !== '') patch[k] = v.trim();
+      if (Object.keys(patch).length === 0) {
+        setMessage('Nothing to save.');
+        return;
+      }
+      const r = await api.saveAISettings(patch);
+      setView(r.ai);
+      setDraft({});
+      setMessage('✅ Saved — active on the next AI request (no restart needed).');
+    } catch (e) {
+      setError(String(e));
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
 
-  async function clearKey(key: SecretKey | PlainKey) {
-    setBusy(true);
-    setStatus(null);
+  async function clearField(k: string) {
+    setSaving(true);
+    setError('');
     try {
-      const { ai } = await api.saveAISettings({ [key]: '' });
-      setView(ai);
-      if (key in plains) setPlains((p) => ({ ...p, [key]: (ai[key as PlainKey] as { value: string }).value }));
-      setStatus('✅ Cleared — falling back to env var / default.');
-    } catch (err) {
-      setStatus(`❌ ${(err as Error).message}`);
+      const r = await api.saveAISettings({ [k]: '' });
+      setView(r.ai);
+      setDraft((d) => {
+        const { [k]: _drop, ...rest } = d;
+        return rest;
+      });
+    } catch (e) {
+      setError(String(e));
     } finally {
-      setBusy(false);
+      setSaving(false);
     }
   }
+
+  const modelPicker = (
+    k: 'anthropicModel' | 'antigravityModel' | 'deepseekModel' | 'ollamaModel',
+    label: string,
+    presets: string[] | null,
+    hint: string,
+  ) => (
+    <div className="flex items-center gap-2">
+      <label className="w-44 shrink-0 text-sm text-zinc-300">{label}</label>
+      <input
+        list={`models-${k}`}
+        value={modelValue(k)}
+        onChange={(e) => setVal(k, e.target.value)}
+        placeholder={hint}
+        className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600"
+      />
+      <datalist id={`models-${k}`}>
+        {(presets ?? []).map((m) => (
+          <option key={m} value={m} />
+        ))}
+      </datalist>
+      <SourceBadge source={view[k].source} />
+    </div>
+  );
 
   return (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold text-white">AI provider keys</h3>
-        {view.updatedAt && <span className="text-xs text-zinc-500">saved {new Date(view.updatedAt).toLocaleString()}</span>}
+    <div className="space-y-4">
+      {/* Provider selection — like the Antigravity model picker. */}
+      <div className="flex items-center gap-2">
+        <label className="w-44 shrink-0 text-sm font-medium text-zinc-200">AI provider</label>
+        <select
+          value={val('preferred') || view.preferred.value}
+          onChange={(e) => setVal('preferred', e.target.value)}
+          className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100"
+        >
+          {PREFERRED.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
+        <SourceBadge source={view.preferred.source} />
       </div>
-      <p className="text-xs text-zinc-500">
-        Stored server-side in the data volume (<code>xssploit-settings.json</code>, mode 0600). Values here override env vars.
-        Keys are never sent back to the browser — only masked previews.
-      </p>
 
-      {SECRET_FIELDS.map((f) => (
-        <div key={f.key} className="space-y-1">
-          <div className="flex items-center gap-2">
-            <label className="label mb-0">{f.label}</label>
-            <SourceBadge source={view[f.key].source} />
-            {view[f.key].set && <span className="text-xs text-zinc-500">{view[f.key].preview}</span>}
-          </div>
-          <div className="flex gap-2">
+      {/* Model pickers */}
+      {modelPicker('anthropicModel', 'Claude model', MODEL_PRESETS.anthropicModel ?? [], 'claude-sonnet-4-20250514')}
+      {modelPicker('antigravityModel', 'Antigravity model', MODEL_PRESETS.antigravityModel ?? [], 'antigravity-pro')}
+      {modelPicker('deepseekModel', 'DeepSeek model', MODEL_PRESETS.deepseekModel ?? [], 'deepseek-chat')}
+      {modelPicker(
+        'ollamaModel',
+        'Ollama model',
+        ollamaModels,
+        ollamaModels === null ? 'checking local Ollama…' : ollamaModels.length === 0 ? 'llama3.1:8b' : 'pick installed model',
+      )}
+
+      <hr className="border-zinc-800" />
+
+      {/* API keys */}
+      {SECRET_KEYS.map((k: SecretKey) => {
+        const f = view[k];
+        return (
+          <div key={k} className="flex items-center gap-2">
+            <label className="w-44 shrink-0 text-sm text-zinc-300">{LABEL[k]}</label>
             <input
               type="password"
-              className="input flex-1"
-              placeholder={view[f.key].set ? 'saved — paste new key to replace' : `paste key… (${f.hint})`}
-              value={secrets[f.key]}
-              onChange={(e) => setSecrets((s) => ({ ...s, [f.key]: e.target.value }))}
-              autoComplete="off"
+              value={val(k)}
+              onChange={(e) => setVal(k, e.target.value)}
+              placeholder={f.set ? (f.preview ?? 'set') : 'not set'}
+              className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600"
             />
-            {view[f.key].source === 'settings' && (
-              <button className="btn-ghost text-xs" disabled={busy} onClick={() => clearKey(f.key)}>clear</button>
+            <SourceBadge source={f.source} />
+            {f.source === 'settings' && (
+              <button
+                onClick={() => clearField(k)}
+                className="rounded border border-zinc-700 px-2 py-1 text-xs text-zinc-400 hover:border-red-700 hover:text-red-400"
+              >
+                Clear
+              </button>
             )}
           </div>
+        );
+      })}
+
+      {/* Base URLs + ollama URL */}
+      {(['antigravityBaseUrl', 'deepseekBaseUrl', 'ollamaBaseUrl'] as const).map((k) => (
+        <div key={k} className="flex items-center gap-2">
+          <label className="w-44 shrink-0 text-sm text-zinc-300">
+            {k === 'ollamaBaseUrl' ? 'Ollama URL' : LABEL[k.replace('BaseUrl', 'ApiKey')] + ' base URL'}
+          </label>
+          <input
+            value={val(k)}
+            onChange={(e) => setVal(k, e.target.value)}
+            placeholder={view[k].value}
+            className="flex-1 rounded border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600"
+          />
+          <SourceBadge source={view[k].source} />
         </div>
       ))}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        {PLAIN_FIELDS.map((f) => (
-          <div key={f.key} className="space-y-1">
-            <div className="flex items-center gap-2">
-              <label className="label mb-0">{f.label}</label>
-              <SourceBadge source={view[f.key].source} />
-            </div>
-            <input
-              className="input"
-              value={plains[f.key]}
-              onChange={(e) => setPlains((p) => ({ ...p, [f.key]: e.target.value }))}
-            />
-          </div>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-3">
-        <button className="btn-primary" disabled={busy} onClick={save}>{busy ? 'Saving…' : 'Save AI settings'}</button>
-        {status && <p className="text-sm text-zinc-300">{status}</p>}
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          onClick={save}
+          disabled={saving}
+          className="rounded bg-emerald-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+        >
+          {saving ? 'Saving…' : 'Save'}
+        </button>
+        {message && <span className="text-sm text-emerald-400">{message}</span>}
+        {error && <span className="text-sm text-red-400">{error}</span>}
       </div>
     </div>
   );

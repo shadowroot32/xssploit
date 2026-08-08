@@ -39,11 +39,16 @@ services:
       context: ../..
       dockerfile: infra/docker/Dockerfile.dashboard
       args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        # Leave unset so the dashboard uses the same-origin /api/* rewrite below —
+        # one hop less (no browser→nginx→api round trip) and no CORS preflight.
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-}
         NEXT_PUBLIC_LOCAL_AUTH_TOKEN: ${NEXT_PUBLIC_LOCAL_AUTH_TOKEN:-}
     restart: unless-stopped
     env_file:
       - ../../.env
+    environment:
+      # Where the Next.js server proxies /api/* (container-to-container).
+      API_INTERNAL_URL: http://api:4000
     ports:
       - "3000:3000"
     networks: [xssploit]

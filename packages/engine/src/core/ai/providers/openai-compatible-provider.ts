@@ -117,8 +117,8 @@ class LazyOpenAICompatibleProvider extends OpenAICompatibleProvider {
   private cfg(): { baseUrl: string; apiKey: string; model: string } {
     const s = resolveAISettings();
     return this.name === 'antigravity'
-      ? { baseUrl: s.antigravityBaseUrl, apiKey: s.antigravityApiKey, model: 'antigravity-pro' }
-      : { baseUrl: s.deepseekBaseUrl, apiKey: s.deepseekApiKey, model: 'deepseek-chat' };
+      ? { baseUrl: s.antigravityBaseUrl, apiKey: s.antigravityApiKey, model: s.antigravityModel }
+      : { baseUrl: s.deepseekBaseUrl, apiKey: s.deepseekApiKey, model: s.deepseekModel };
   }
 
   protected override url(): string {

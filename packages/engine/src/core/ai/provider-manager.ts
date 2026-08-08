@@ -4,6 +4,7 @@ import { antigravityProvider, deepseekProvider } from './providers/openai-compat
 import { OllamaProvider } from './providers/ollama-provider.js';
 import { NoAIProvider } from './providers/no-ai-provider.js';
 import { createLogger } from '../../utils/logger.js';
+import { resolveAISettings } from '../../utils/settings-store.js';
 
 const logger = createLogger('ai-providers');
 
@@ -21,9 +22,7 @@ export class ProviderManager {
   constructor(private readonly maxTokens: number, enabled = true, directives?: string) {
     const trimmed = directives?.trim();
     this.directives = trimmed ? trimmed.slice(0, 2000) : undefined;
-    this.chain = enabled
-      ? [new ClaudeProvider(), antigravityProvider(), deepseekProvider(), new OllamaProvider(), new NoAIProvider()]
-      : [new NoAIProvider()];
+    this.chain = enabled ? buildChain() : [new NoAIProvider()];
   }
 
   get budgetExhausted(): boolean {
@@ -57,5 +56,28 @@ export class ProviderManager {
       }
     }
     return fallback();
+  }
+}
+
+/**
+ * Build the provider chain from current settings. `preferred` pins a single
+ * provider (set in the dashboard); 'auto' keeps the tiered fallback order.
+ */
+function buildChain(): BaseAIProvider[] {
+  const { preferred } = resolveAISettings();
+  const noAi = new NoAIProvider();
+  switch (preferred) {
+    case 'claude':
+      return [new ClaudeProvider(), noAi];
+    case 'antigravity':
+      return [antigravityProvider(), noAi];
+    case 'deepseek':
+      return [deepseekProvider(), noAi];
+    case 'ollama':
+      return [new OllamaProvider(), noAi];
+    case 'none':
+      return [noAi];
+    default:
+      return [new ClaudeProvider(), antigravityProvider(), deepseekProvider(), new OllamaProvider(), noAi];
   }
 }

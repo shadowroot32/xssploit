@@ -10,13 +10,19 @@ import {
 const MASK = '••••••••';
 const ALLOWED_KEYS = [
   'anthropicApiKey',
+  'anthropicModel',
   'antigravityApiKey',
   'antigravityBaseUrl',
+  'antigravityModel',
   'deepseekApiKey',
   'deepseekBaseUrl',
+  'deepseekModel',
   'ollamaBaseUrl',
   'ollamaModel',
+  'preferred',
 ] as const;
+
+const PREFERRED_VALUES = ['auto', 'claude', 'antigravity', 'deepseek', 'ollama', 'none'] as const;
 
 type AIKey = (typeof ALLOWED_KEYS)[number];
 
@@ -38,12 +44,16 @@ function publicView() {
   });
   return {
     anthropicApiKey: secret('anthropicApiKey'),
+    anthropicModel: plain('anthropicModel'),
     antigravityApiKey: secret('antigravityApiKey'),
-    deepseekApiKey: secret('deepseekApiKey'),
     antigravityBaseUrl: plain('antigravityBaseUrl'),
+    antigravityModel: plain('antigravityModel'),
+    deepseekApiKey: secret('deepseekApiKey'),
     deepseekBaseUrl: plain('deepseekBaseUrl'),
+    deepseekModel: plain('deepseekModel'),
     ollamaBaseUrl: plain('ollamaBaseUrl'),
     ollamaModel: plain('ollamaModel'),
+    preferred: plain('preferred'),
     updatedAt: loadSettings().updatedAt || null,
   };
 }
@@ -52,12 +62,16 @@ function envName(k: AIKey): string {
   return (
     {
       anthropicApiKey: 'ANTHROPIC_API_KEY',
+      anthropicModel: 'ANTHROPIC_MODEL',
       antigravityApiKey: 'ANTIGRAVITY_API_KEY',
       antigravityBaseUrl: 'ANTIGRAVITY_BASE_URL',
+      antigravityModel: 'ANTIGRAVITY_MODEL',
       deepseekApiKey: 'DEEPSEEK_API_KEY',
       deepseekBaseUrl: 'DEEPSEEK_BASE_URL',
+      deepseekModel: 'DEEPSEEK_MODEL',
       ollamaBaseUrl: 'OLLAMA_BASE_URL',
       ollamaModel: 'OLLAMA_MODEL',
+      preferred: 'AI_PREFERRED',
     } as Record<AIKey, string>
   )[k];
 }
@@ -86,7 +100,10 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
         return reply.code(400).send({ error: `${k} must be a string of at most 500 chars` });
       }
       if (k.toLowerCase().includes('apikey') && v.includes(MASK)) continue; // unchanged masked value
-      patch[k] = v.trim();
+      if (k === 'preferred' && !(PREFERRED_VALUES as readonly string[]).includes(v)) {
+        return reply.code(400).send({ error: `preferred must be one of: ${PREFERRED_VALUES.join(', ')}` });
+      }
+      (patch as Record<string, string>)[k] = v.trim();
     }
     // undefined fields must actually remove the key → rebuild the file
     const current = loadSettings().ai;
@@ -99,5 +116,18 @@ export async function settingsRoutes(app: FastifyInstance): Promise<void> {
     saveAISettings(Object.fromEntries(ALLOWED_KEYS.map((k) => [k, undefined])) as AISettings);
     saveAISettings(next);
     return { ok: true, ai: publicView() };
+  });
+
+  /** List models installed on the configured Ollama server (for the model picker). */
+  app.get('/ollama-models', async () => {
+    const { ollamaBaseUrl } = resolveAISettings();
+    try {
+      const res = await fetch(`${ollamaBaseUrl.replace(/\/$/, '')}/api/tags`, { signal: AbortSignal.timeout(4000) });
+      if (!res.ok) return { reachable: false, models: [] as string[] };
+      const json = (await res.json()) as { models?: { name: string }[] };
+      return { reachable: true, models: (json.models ?? []).map((m) => m.name) };
+    } catch {
+      return { reachable: false, models: [] as string[] };
+    }
   });
 }

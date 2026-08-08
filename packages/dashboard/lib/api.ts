@@ -1,4 +1,6 @@
-const BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://127.0.0.1:4000';
+// Prefer same-origin (Next.js rewrite proxies /api/* to the API server).
+// Falls back to direct cross-origin only if NEXT_PUBLIC_API_URL is explicitly set.
+const BASE = process.env.NEXT_PUBLIC_API_URL ?? '';
 const TOKEN = process.env.NEXT_PUBLIC_LOCAL_AUTH_TOKEN ?? '';
 
 function headers(): HeadersInit {
@@ -69,12 +71,16 @@ export interface PlainField {
 
 export interface AISettingsView {
   anthropicApiKey: SecretField;
+  anthropicModel: PlainField;
   antigravityApiKey: SecretField;
-  deepseekApiKey: SecretField;
   antigravityBaseUrl: PlainField;
+  antigravityModel: PlainField;
+  deepseekApiKey: SecretField;
   deepseekBaseUrl: PlainField;
+  deepseekModel: PlainField;
   ollamaBaseUrl: PlainField;
   ollamaModel: PlainField;
+  preferred: PlainField;
   updatedAt: string | null;
 }
 
@@ -95,6 +101,7 @@ export const api = {
   getSettings: () => get<{ ai: AISettingsView }>('/api/settings'),
   saveAISettings: (patch: Record<string, string>) =>
     put<{ ok: boolean; ai: AISettingsView }>('/api/settings/ai', patch),
+  getOllamaModels: () => get<{ reachable: boolean; models: string[] }>('/api/settings/ollama-models'),
   listCallbacks: () =>
     get<{ callbacks: Record<string, unknown>[] }>('/api/callbacks'),
   listReports: (scanId?: string) =>

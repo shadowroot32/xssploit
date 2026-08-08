@@ -10,12 +10,17 @@ import path from 'node:path';
  */
 export interface AISettings {
   anthropicApiKey?: string;
+  anthropicModel?: string;
   antigravityApiKey?: string;
   antigravityBaseUrl?: string;
+  antigravityModel?: string;
   deepseekApiKey?: string;
   deepseekBaseUrl?: string;
+  deepseekModel?: string;
   ollamaBaseUrl?: string;
   ollamaModel?: string;
+  /** Force a single provider; 'auto' keeps the tiered fallback chain. */
+  preferred?: 'auto' | 'claude' | 'antigravity' | 'deepseek' | 'ollama' | 'none';
 }
 
 export interface SettingsFile {
@@ -75,15 +80,22 @@ function pick(fileVal: string | undefined, envVal: string | undefined, fallback:
 }
 
 /** Resolved AI config — what the providers should use right now. */
-export function resolveAISettings(): Required<AISettings> {
+export function resolveAISettings(): Required<Omit<AISettings, 'preferred'>> & { preferred: NonNullable<AISettings['preferred']> } {
   const ai = loadSettings().ai;
   return {
     anthropicApiKey: pick(ai.anthropicApiKey, process.env.ANTHROPIC_API_KEY, ''),
+    anthropicModel: pick(ai.anthropicModel, process.env.ANTHROPIC_MODEL, 'claude-sonnet-4-20250514'),
     antigravityApiKey: pick(ai.antigravityApiKey, process.env.ANTIGRAVITY_API_KEY, ''),
     antigravityBaseUrl: pick(ai.antigravityBaseUrl, process.env.ANTIGRAVITY_BASE_URL, 'https://api.antigravity.ai/v1'),
+    antigravityModel: pick(ai.antigravityModel, process.env.ANTIGRAVITY_MODEL, 'antigravity-pro'),
     deepseekApiKey: pick(ai.deepseekApiKey, process.env.DEEPSEEK_API_KEY, ''),
     deepseekBaseUrl: pick(ai.deepseekBaseUrl, process.env.DEEPSEEK_BASE_URL, 'https://api.deepseek.com/v1'),
+    deepseekModel: pick(ai.deepseekModel, process.env.DEEPSEEK_MODEL, 'deepseek-chat'),
     ollamaBaseUrl: pick(ai.ollamaBaseUrl, process.env.OLLAMA_BASE_URL ?? process.env.OLLAMA_HOST, 'http://localhost:11434'),
     ollamaModel: pick(ai.ollamaModel, process.env.OLLAMA_MODEL, 'llama3.1:8b'),
+    preferred:
+      ai.preferred ?? (['auto', 'claude', 'antigravity', 'deepseek', 'ollama', 'none'].includes(process.env.AI_PREFERRED ?? '')
+        ? (process.env.AI_PREFERRED as NonNullable<AISettings['preferred']>)
+        : 'auto'),
   };
 }
