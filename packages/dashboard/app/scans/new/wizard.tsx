@@ -42,8 +42,10 @@ export function NewScanWizard() {
 
   const set = <K extends keyof typeof form>(k: K, v: (typeof form)[K]) => setForm((f) => ({ ...f, [k]: v }));
 
+  const trimmedUrl = form.targetUrl.trim();
+  const urlValid = /^https?:\/\/.+/i.test(trimmedUrl);
   const canNext =
-    step === 0 ? /^https?:\/\/.+/.test(form.targetUrl)
+    step === 0 ? urlValid
     : step === 4 ? true
     : true;
 
@@ -52,7 +54,7 @@ export function NewScanWizard() {
     setError(null);
     try {
       const { scanId } = await api.startScan({
-        targetUrl: form.targetUrl,
+        targetUrl: trimmedUrl,
         program: form.program || undefined,
         profile: form.profile,
         types: { reflected: form.reflected, dom: form.dom, stored: form.stored, blind: form.blind },
@@ -102,6 +104,9 @@ export function NewScanWizard() {
           <div>
             <label className="label">Target URL *</label>
             <input className="input" placeholder="https://app.example.com" value={form.targetUrl} onChange={(e) => set('targetUrl', e.target.value)} />
+            {!urlValid && trimmedUrl.length > 0 && (
+              <p className="mt-1 text-xs text-amber-400">URL harus diawali http:// atau https:// — mis. https://{trimmedUrl.replace(/^https?:\/\//i, '')}</p>
+            )}
             <p className="mt-1 text-xs text-zinc-500">Only scan targets you are authorized to test.</p>
           </div>
           <div>
