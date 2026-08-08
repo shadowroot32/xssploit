@@ -58,6 +58,12 @@ export interface ScanConfig {
   /** Notify personal webhook channels on findings. */
   notify: boolean;
   respectRobots: boolean;
+  /**
+   * Free-form operator directives injected into every AI prompt
+   * ("focus on search params", "target runs React", …). Also used by the
+   * rule-based fallback for keyword hints. Printed into reports for audit.
+   */
+  userPrompt?: string;
 }
 
 export interface ScanProgress {

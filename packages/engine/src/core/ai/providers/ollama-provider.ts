@@ -36,7 +36,9 @@ export class OllamaProvider extends BaseAIProvider {
 
   async suggestPayloads(req: PayloadSuggestionRequest) {
     const res = await this.generate(
-      `XSS payloads for authorized test. Context: ${req.context}. JSON array of strings only, max ${req.max ?? 8}.`,
+      `XSS payloads for authorized test.${
+        req.directives ? ` Directives (must follow): ${req.directives}.` : ''
+      } Context: ${req.context}. JSON array of strings only, max ${req.max ?? 8}.`,
     );
     let payloads: string[] = [];
     try {
@@ -49,9 +51,11 @@ export class OllamaProvider extends BaseAIProvider {
     return { payloads, tokensUsed: res.tokensUsed };
   }
 
-  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string }) {
+  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string; directives?: string }) {
     const res = await this.generate(
-      `Classify XSS finding JSON {"severity","reasoning","description"}: ${JSON.stringify(input)}`,
+      `Classify XSS finding JSON {"severity","reasoning","description"}${
+        input.directives ? ` considering operator directives: ${input.directives}` : ''
+      }: ${JSON.stringify({ context: input.context, payload: input.payload, url: input.url, parameter: input.parameter })}`,
     );
     let result: VulnClassification;
     try {

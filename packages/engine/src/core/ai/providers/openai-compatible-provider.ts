@@ -46,6 +46,7 @@ export class OpenAICompatibleProvider extends BaseAIProvider {
   async suggestPayloads(req: PayloadSuggestionRequest) {
     const prompt = [
       'Authorized pentest. Suggest XSS payloads as a JSON array of strings only.',
+      req.directives ? `Operator directives (MUST follow): ${req.directives}.` : '',
       `Context: ${req.context}. Intact syntax: ${JSON.stringify(req.intactSyntax)}.`,
       req.waf ? `WAF: ${req.waf}.` : '',
       req.failedPayloads.length > 0 ? `Blocked already: ${req.failedPayloads.slice(0, 5).join(' | ')}` : '',
@@ -63,9 +64,11 @@ export class OpenAICompatibleProvider extends BaseAIProvider {
     return { payloads, tokensUsed: res.tokensUsed };
   }
 
-  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string }) {
+  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string; directives?: string }) {
     const res = await this.chat(
-      `Classify this XSS finding. JSON only {"severity":"...","reasoning":"...","description":"..."}: ${JSON.stringify(input)}`,
+      `Classify this XSS finding. JSON only {"severity":"...","reasoning":"...","description":"..."}${
+        input.directives ? `. Operator directives: ${input.directives}` : ''
+      }: ${JSON.stringify({ context: input.context, payload: input.payload, url: input.url, parameter: input.parameter })}`,
       512,
     );
     let result: VulnClassification;

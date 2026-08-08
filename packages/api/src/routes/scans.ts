@@ -25,6 +25,12 @@ export function scanRoutes(service: ScanService) {
       if (body.profile && !(body.profile in SCAN_PROFILES)) {
         return reply.code(400).send({ error: `unknown profile; use one of: ${Object.keys(SCAN_PROFILES).join(', ')}` });
       }
+      if (body.userPrompt !== undefined) {
+        if (typeof body.userPrompt !== 'string' || body.userPrompt.length > 2000) {
+          return reply.code(400).send({ error: 'userPrompt must be a string of at most 2000 chars' });
+        }
+        body.userPrompt = body.userPrompt.trim() || undefined;
+      }
       const { scanId } = service.startScan(body as ScanConfig);
       return reply.code(201).send({ scanId, status: 'running' });
     });

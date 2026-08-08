@@ -36,6 +36,7 @@ export function NewScanWizard() {
     token: '',
     categories: '',
     ai: true,
+    aiDirectives: '',
     respectRobots: true,
   });
 
@@ -72,6 +73,7 @@ export function NewScanWizard() {
         blindXss: { enabled: form.blind, callbackBase: form.callbackBase || undefined },
         notify: true,
         respectRobots: form.respectRobots,
+        userPrompt: form.aiDirectives.trim() || undefined,
       });
       router.push(`/scans/${scanId}`);
     } catch (err) {
@@ -186,6 +188,18 @@ export function NewScanWizard() {
             <input type="checkbox" checked={form.ai} onChange={(e) => set('ai', e.target.checked)} className="accent-accent-500" />
             AI payload tuning & analysis (tiered fallback)
           </label>
+          {form.ai && (
+            <div>
+              <label className="label">AI directives (optional)</label>
+              <textarea
+                className="input min-h-[4.5rem]"
+                placeholder={'Custom instructions for the AI, e.g.\n"focus on search & comment params; target runs React; WAF = Cloudflare, prefer case-mutation bypasses"'}
+                value={form.aiDirectives}
+                onChange={(e) => set('aiDirectives', e.target.value.slice(0, 2000))}
+              />
+              <p className="mt-1 text-xs text-zinc-500">Injected into every AI prompt & printed into reports for audit.</p>
+            </div>
+          )}
           <label className="flex items-center gap-2 text-sm text-zinc-300">
             <input type="checkbox" checked={form.respectRobots} onChange={(e) => set('respectRobots', e.target.checked)} className="accent-accent-500" />
             Respect robots.txt
@@ -203,6 +217,11 @@ export function NewScanWizard() {
             <dt className="text-zinc-500">Rate limit</dt><dd>{form.rateLimit} req/s</dd>
             <dt className="text-zinc-500">Auth</dt><dd>{form.authMethod}</dd>
             <dt className="text-zinc-500">AI</dt><dd>{form.ai ? 'enabled' : 'disabled'}</dd>
+            {form.ai && form.aiDirectives.trim() && (
+              <>
+                <dt className="text-zinc-500">Directives</dt><dd className="break-words whitespace-pre-wrap">{form.aiDirectives.trim()}</dd>
+              </>
+            )}
           </dl>
           <p className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-xs text-amber-200">
             ⚠️ By launching you confirm you have written authorization to test this target.

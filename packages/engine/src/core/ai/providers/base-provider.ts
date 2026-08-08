@@ -8,6 +8,8 @@ export interface PayloadSuggestionRequest {
   failedPayloads: string[];
   /** WAF fingerprint if detected. */
   waf?: string;
+  /** Operator directives from ScanConfig.userPrompt — providers must honor these. */
+  directives?: string;
   max?: number;
 }
 
@@ -44,6 +46,8 @@ export abstract class BaseAIProvider {
     payload: string;
     url: string;
     parameter: string;
+    /** Operator directives from ScanConfig.userPrompt. */
+    directives?: string;
   }): Promise<{ result: VulnClassification; tokensUsed: number }>;
 
   /** Free-form analysis (CSP review, response anomaly explanation). */

@@ -47,6 +47,7 @@ export class ClaudeProvider extends BaseAIProvider {
   async suggestPayloads(req: PayloadSuggestionRequest) {
     const prompt = [
       'You are assisting an authorized penetration test. Suggest XSS payloads.',
+      req.directives ? `Operator directives (MUST follow): ${req.directives}` : '',
       `Injection context: ${req.context}`,
       `Surviving syntax chars: ${JSON.stringify(req.intactSyntax)}`,
       req.waf ? `WAF detected: ${req.waf}` : 'No WAF detected.',
@@ -57,11 +58,12 @@ export class ClaudeProvider extends BaseAIProvider {
     return { payloads: parseJsonArray(res.text), tokensUsed: res.tokensUsed };
   }
 
-  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string }) {
+  async classifyVuln(input: { context: string; payload: string; url: string; parameter: string; directives?: string }) {
     const prompt = [
       'Classify this confirmed XSS finding for a pentest report. Reply ONLY with JSON:',
       '{"severity":"critical|high|medium|low","reasoning":"...","description":"..."}',
-      JSON.stringify(input),
+      input.directives ? `Operator directives (weigh these in severity/description): ${input.directives}` : '',
+      JSON.stringify({ context: input.context, payload: input.payload, url: input.url, parameter: input.parameter }),
     ].join('\n');
     const res = await this.messages(prompt, 512);
     const parsed = parseJsonObject<VulnClassification>(res.text);

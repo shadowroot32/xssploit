@@ -59,7 +59,8 @@ export class Scanner {
     private readonly opts: ScannerOptions,
   ) {
     this.limiter = new RateLimiter(config.rateLimit, config.profile === 'stealth' ? 1500 : 0);
-    this.ai = new ProviderManager(config.ai.maxTokens, config.ai.enabled);
+    this.ai = new ProviderManager(config.ai.maxTokens, config.ai.enabled, config.userPrompt);
+    if (this.ai.directives) logger.info({ directives: this.ai.directives }, 'operator directives active');
   }
 
   cancel(): void {

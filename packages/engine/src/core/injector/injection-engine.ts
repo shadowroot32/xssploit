@@ -96,6 +96,7 @@ export class InjectionEngine {
           context,
           intactSyntax: syntax,
           failedPayloads: [],
+          directives: this.ai.directives,
           max: 6,
         });
         return { value: r.payloads, tokensUsed: r.tokensUsed };
@@ -162,7 +163,13 @@ export class InjectionEngine {
 
     const classification = await this.ai.withProvider(
       async (provider) => {
-        const r = await provider.classifyVuln({ context, payload, url: endpoint.url, parameter: param });
+        const r = await provider.classifyVuln({
+          context,
+          payload,
+          url: endpoint.url,
+          parameter: param,
+          directives: this.ai.directives,
+        });
         return { value: r.result, tokensUsed: r.tokensUsed };
       },
       () => ({

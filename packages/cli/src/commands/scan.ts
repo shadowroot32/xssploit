@@ -1,5 +1,6 @@
 import { defineCommand } from 'citty';
 import path from 'node:path';
+import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { Scanner, defaultScanConfig, ReportBuilder } from '@xssploit/engine';
 import type { ScanConfig, Vulnerability } from '@xssploit/shared';
@@ -35,6 +36,8 @@ export const scanCommand = defineCommand({
     blind: { type: 'boolean', description: 'Seed blind-XSS payloads (requires CALLBACK_DOMAIN)' },
     'callback-base': { type: 'string', description: 'Callback base URL, e.g. http://cb.example.com' },
     'out-dir': { type: 'string', description: 'Report output directory', default: '' },
+    prompt: { type: 'string', description: 'AI directives, e.g. "focus on search params; target runs React"' },
+    interactive: { type: 'boolean', description: 'Ask for AI directives before the scan starts', alias: 'i' },
     json: { type: 'boolean', description: 'Print machine-readable JSON summary' },
   },
   async run({ args }) {
@@ -43,6 +46,16 @@ export const scanCommand = defineCommand({
     if (!(profile in SCAN_PROFILES)) {
       console.error(`unknown profile "${args.profile}" — use: ${Object.keys(SCAN_PROFILES).join(', ')}`);
       process.exit(2);
+    }
+
+    // Operator directives: --prompt wins; --interactive asks before anything runs.
+    let userPrompt = args.prompt?.trim() || undefined;
+    if (!userPrompt && args.interactive) {
+      userPrompt = await askDirectives();
+    }
+    if (userPrompt && userPrompt.length > 2000) {
+      console.error('⚠️  directives too long (>2000 chars) — truncating');
+      userPrompt = userPrompt.slice(0, 2000);
     }
 
     const config = defaultScanConfig({
@@ -66,6 +79,7 @@ export const scanCommand = defineCommand({
         enabled: args.blind || typeSet.has('blind'),
         callbackBase: args['callback-base'],
       },
+      userPrompt,
     });
 
     if (config.types.blind && !config.blindXss.callbackBase) {
@@ -117,3 +131,17 @@ export const scanCommand = defineCommand({
     }
   },
 });
+
+/** Prompt the operator for free-form AI directives before the scan begins. */
+function askDirectives(): Promise<string | undefined> {
+  return new Promise((resolve) => {
+    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+    rl.question(
+      '🧠 AI directives for this scan (optional, Enter to skip)\n   e.g. "focus on search/comment params; target runs React; WAF=Cloudflare"\n> ',
+      (answer) => {
+        rl.close();
+        resolve(answer.trim() || undefined);
+      },
+    );
+  });
+}

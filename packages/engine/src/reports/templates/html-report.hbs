@@ -29,6 +29,7 @@
       <tr><th>Requests</th><td>{{scan.stats.requestsSent}}</td></tr>
       <tr><th>Endpoints tested</th><td>{{scan.stats.endpointsTested}}</td></tr>
       <tr><th>AI tokens used</th><td>{{scan.stats.aiTokensUsed}}</td></tr>
+      {{#if scan.config.userPrompt}}<tr><th>AI directives</th><td>{{scan.config.userPrompt}}</td></tr>{{/if}}
     </table>
     <p><em>Authorized engagement only. This report is confidential.</em></p>
   </div>

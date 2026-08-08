@@ -15,8 +15,12 @@ const logger = createLogger('ai-providers');
 export class ProviderManager {
   private readonly chain: BaseAIProvider[];
   private tokensUsed = 0;
+  /** Operator directives attached to every AI request this scan. */
+  readonly directives?: string;
 
-  constructor(private readonly maxTokens: number, enabled = true) {
+  constructor(private readonly maxTokens: number, enabled = true, directives?: string) {
+    const trimmed = directives?.trim();
+    this.directives = trimmed ? trimmed.slice(0, 2000) : undefined;
     this.chain = enabled
       ? [new ClaudeProvider(), antigravityProvider(), deepseekProvider(), new OllamaProvider(), new NoAIProvider()]
       : [new NoAIProvider()];

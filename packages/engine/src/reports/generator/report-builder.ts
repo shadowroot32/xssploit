@@ -125,6 +125,7 @@ function renderMarkdown(data: ReportData): string {
     `- **Duration:** ${formatDuration(scan.stats.durationMs)}`,
     `- **Requests:** ${scan.stats.requestsSent} | **Endpoints tested:** ${scan.stats.endpointsTested}`,
     `- **Findings:** ${vulnerabilities.length}`,
+    ...(scan.config.userPrompt ? [`- **AI directives:** ${scan.config.userPrompt}`] : []),
     '',
     '---',
     '',
