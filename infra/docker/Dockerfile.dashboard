@@ -18,12 +18,15 @@ ARG NEXT_PUBLIC_LOCAL_AUTH_TOKEN
 ENV NEXT_TELEMETRY_DISABLED=1 \
     NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
     NEXT_PUBLIC_LOCAL_AUTH_TOKEN=${NEXT_PUBLIC_LOCAL_AUTH_TOKEN}
-RUN pnpm --filter @xssploit/dashboard build
+RUN pnpm --filter @xssploit/dashboard build \
+ && mkdir -p packages/dashboard/public
 
 FROM base AS runtime
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
 COPY --from=build /app/packages/dashboard/.next/standalone ./
 COPY --from=build /app/packages/dashboard/.next/static ./packages/dashboard/.next/static
+# public/ is optional in this repo — seed an empty dir in the build stage so
+# the COPY below never fails when no static assets exist yet.
 COPY --from=build /app/packages/dashboard/public ./packages/dashboard/public
 USER node
 EXPOSE 3000
