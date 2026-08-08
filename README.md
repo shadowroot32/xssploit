@@ -56,3 +56,4 @@ make payloads
 - [tests/vulnerable-apps](tests/vulnerable-apps) — self-built practice targets
 - [infra](infra) — Dockerfiles, CI
 - [docs](docs) — setup, API reference, authorization policy
+# xssploit
