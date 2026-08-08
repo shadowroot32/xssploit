@@ -1,0 +1,18 @@
+PROPRIETARY — PRIVATE USE ONLY
+
+Copyright (c) 2026 XSSPLOIT author
+
+This software is a personal security-testing tool. It is NOT licensed for
+public distribution, resale, SaaS hosting, or sharing with third parties.
+
+PERMITTED:
+- Use by the owner against systems for which the owner holds explicit,
+  documented authorization (bug bounty program scope, signed pentest
+  contract, or systems the owner personally owns).
+
+PROHIBITED:
+- Redistribution, sublicensing, or commercial hosting of this software.
+- Use against any system without prior written authorization.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND. The author
+is not responsible for misuse or for any damage caused by this software.

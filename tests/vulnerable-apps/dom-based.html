@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>vuln: DOM-based</title></head>
+<body>
+  <h1>Greeting</h1>
+  <div id="greeting"></div>
+  <div id="eval-zone"></div>
+  <script>
+    // Deliberately vulnerable: location.hash → innerHTML sink.
+    var name = decodeURIComponent(location.hash.slice(1));
+    if (name) document.getElementById('greeting').innerHTML = 'Hello, ' + name + '!';
+
+    // Second flow: query param → eval.
+    var params = new URLSearchParams(location.search);
+    var expr = params.get('expr');
+    if (expr) { try { eval('(' + expr + ')'); } catch (e) {} }
+
+    // postMessage without origin check.
+    window.addEventListener('message', function (e) {
+      document.getElementById('eval-zone').innerHTML = e.data;
+    });
+  </script>
+</body>
+</html>

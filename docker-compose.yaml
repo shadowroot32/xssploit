@@ -1,0 +1,58 @@
+# XSSPLOIT Personal Edition — local-first stack.
+# Single user, single host. NOT exposed to the public internet by default:
+# the API binds localhost; expose the callback server only via your own
+# firewall rules / reverse proxy when you actually run blind-XSS engagements.
+services:
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.api
+    env_file: .env
+    environment:
+      DATABASE_URL: /data/xssploit.db
+    volumes:
+      - xssploit-data:/data
+      - ./payloads:/app/payloads:ro
+      - ./reports:/app/reports
+    ports:
+      - "127.0.0.1:4000:4000"
+
+  engine:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.engine
+    env_file: .env
+    profiles: ["worker"]
+    volumes:
+      - xssploit-data:/data
+      - ./payloads:/app/payloads:ro
+      - ./reports:/app/reports
+    depends_on:
+      - api
+
+  callback:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.callback
+    env_file: .env
+    volumes:
+      - xssploit-data:/data
+    ports:
+      # Blind-XSS callbacks must be reachable from the target app.
+      # Bind publicly ONLY on your own isolated server, never on the same
+      # host as production client sites (see blueprint v5 notes).
+      - "${CALLBACK_PORT:-5001}:5001"
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile.dashboard
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      - api
+
+volumes:
+  xssploit-data:

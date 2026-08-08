@@ -1,0 +1,16 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>vuln: reflected but CSP-protected (negative test)</title>
+</head>
+<body>
+  <h1>Secure search</h1>
+  <form method="get" action="secure-search">
+    <input name="q" type="text">
+    <button>Go</button>
+  </form>
+  <!-- Served with: content-security-policy: default-src 'self'; script-src 'self' -->
+  <div id="results"></div>
+</body>
+</html>

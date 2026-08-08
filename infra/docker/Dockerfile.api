@@ -1,0 +1,32 @@
+# XSSPLOIT API — Fastify + SQLite. Local-first single container.
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json turbo.json tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/engine/package.json packages/engine/
+COPY packages/api/package.json packages/api/
+RUN pnpm install --frozen-lockfile=false
+
+FROM deps AS build
+COPY packages/shared packages/shared
+COPY packages/engine packages/engine
+COPY packages/api packages/api
+COPY payloads payloads
+RUN pnpm --filter @xssploit/api build
+
+FROM base AS runtime
+ENV NODE_ENV=production \
+    API_HOST=0.0.0.0 \
+    API_PORT=4000 \
+    DATABASE_URL=/data/xssploit.db
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/packages ./packages
+COPY --from=build /app/payloads ./payloads
+COPY pnpm-workspace.yaml package.json tsconfig.base.json ./
+RUN mkdir -p /data && chown -R node:node /data /app
+USER node
+EXPOSE 4000
+CMD ["node", "--import", "tsx", "packages/api/src/index.ts"]

@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>vuln: filtered (strips angle brackets)</title></head>
+<body>
+  <h1>Comment</h1>
+  <form method="get" action="comment">
+    <input name="text" type="text">
+    <button>Post</button>
+  </form>
+  <!-- Server strips < and > but keeps quotes — attribute breakout expected -->
+  <div id="comment"></div>
+</body>
+</html>

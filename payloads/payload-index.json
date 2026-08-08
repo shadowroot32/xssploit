@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "generatedBy": "manual seed — run pnpm payloads:collect to regenerate with counts",
+  "categories": [
+    { "category": "html-body", "file": "context-based/html-body.txt", "count": 23, "tags": ["reflected", "html"] },
+    { "category": "html-attribute", "file": "context-based/html-attribute.txt", "count": 13, "tags": ["reflected", "attribute"] },
+    { "category": "js-string", "file": "context-based/js-string.txt", "count": 14, "tags": ["reflected", "js"] },
+    { "category": "url-context", "file": "context-based/url-context.txt", "count": 11, "tags": ["reflected", "url"] },
+    { "category": "dom-based", "file": "context-based/dom-based.txt", "count": 12, "tags": ["dom"] },
+    { "category": "waf-bypass", "file": "context-based/waf-bypass.txt", "count": 28, "tags": ["evasion"] },
+    { "category": "polyglot", "file": "context-based/polyglot.txt", "count": 5, "tags": ["polyglot"] },
+    { "category": "event-handlers", "file": "context-based/event-handlers.txt", "count": 12, "tags": ["attribute", "evasion"] },
+    { "category": "blind-xss", "file": "blind-xss/blind-generic.txt", "count": 10, "tags": ["blind", "callback"] }
+  ]
+}

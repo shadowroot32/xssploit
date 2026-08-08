@@ -1,0 +1,65 @@
+# XSSPLOIT Personal Edition — single-VM deployment.
+# Build & run:  docker compose -f infra/docker/docker-compose.yml up -d --build
+#
+# Required env (export before compose, or put in repo-root .env):
+#   NEXT_PUBLIC_API_URL         — e.g. https://api.yourdomain.com
+#   NEXT_PUBLIC_LOCAL_AUTH_TOKEN — same value as LOCAL_AUTH_TOKEN below
+#   LOCAL_AUTH_TOKEN            — openssl rand -hex 32
+#   CALLBACK_DOMAIN             — e.g. cb.yourdomain.com (no scheme)
+
+services:
+  api:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.api
+    restart: unless-stopped
+    environment:
+      API_HOST: 0.0.0.0
+      API_PORT: 4000
+      DATABASE_URL: /data/xssploit.db
+      LOCAL_AUTH_TOKEN: ${LOCAL_AUTH_TOKEN:?set LOCAL_AUTH_TOKEN}
+      CALLBACK_DOMAIN: ${CALLBACK_DOMAIN:-localhost:5001}
+      CALLBACK_TOKEN_SECRET: ${CALLBACK_TOKEN_SECRET:-change-me-please}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DISCORD_WEBHOOK_URL: ${DISCORD_WEBHOOK_URL:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      LOG_LEVEL: info
+    volumes:
+      - api-data:/data
+    networks: [xssploit]
+    # Not published to the host — only reachable via the reverse proxy
+    # (or `docker compose exec`) unless you explicitly add a ports: entry.
+
+  dashboard:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.dashboard
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:?set NEXT_PUBLIC_API_URL}
+        NEXT_PUBLIC_LOCAL_AUTH_TOKEN: ${NEXT_PUBLIC_LOCAL_AUTH_TOKEN:-}
+    restart: unless-stopped
+    networks: [xssploit]
+
+  callback:
+    build:
+      context: ../..
+      dockerfile: infra/docker/Dockerfile.callback
+    restart: unless-stopped
+    environment:
+      CALLBACK_HOST: 0.0.0.0
+      CALLBACK_PORT: 5001
+      CALLBACK_DATA_DIR: /data/callbacks
+      CALLBACK_PUBLIC_BASE: ${CALLBACK_PUBLIC_BASE:-http://localhost:5001}
+    volumes:
+      - callback-data:/data/callbacks
+    networks: [xssploit]
+
+networks:
+  xssploit:
+    driver: bridge
+
+volumes:
+  api-data:
+  callback-data:

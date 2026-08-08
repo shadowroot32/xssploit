@@ -1,0 +1,17 @@
+# Blind-XSS callback listener — run on an isolated, internet-facing host.
+FROM node:20-alpine
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json tsconfig.base.json ./
+COPY packages/shared/package.json packages/shared/
+COPY packages/engine/package.json packages/engine/
+RUN pnpm install --frozen-lockfile=false --filter @xssploit/engine...
+COPY packages/shared packages/shared
+COPY packages/engine packages/engine
+
+ENV NODE_ENV=production CALLBACK_PORT=5001 CALLBACK_DATA_DIR=/data/callbacks
+RUN mkdir -p /data/callbacks && chown -R node:node /data /app
+USER node
+EXPOSE 5001
+CMD ["node", "--import", "tsx", "packages/engine/src/core/callback/standalone.ts"]

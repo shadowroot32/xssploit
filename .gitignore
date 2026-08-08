@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.next/
+.env
+data/
+reports/output/
+payloads/all-the-things/
+payloads/ai-generated/
+.DS_Store
+*.log

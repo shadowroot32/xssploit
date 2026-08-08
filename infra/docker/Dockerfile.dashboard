@@ -1,0 +1,30 @@
+# Next.js dashboard (standalone output).
+FROM node:20-alpine AS base
+RUN corepack enable && corepack prepare pnpm@9 --activate
+WORKDIR /app
+
+FROM base AS deps
+COPY pnpm-workspace.yaml pnpm-lock.yaml* package.json ./
+COPY packages/dashboard/package.json packages/dashboard/
+RUN pnpm install --frozen-lockfile=false --filter @xssploit/dashboard...
+
+FROM deps AS build
+COPY packages/dashboard packages/dashboard
+# NEXT_PUBLIC_* values are inlined into the client bundle at build time —
+# the dashboard is a browser app and cannot read runtime env. Pass the public
+# API URL/token as build args (compose does this for you).
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_LOCAL_AUTH_TOKEN
+ENV NEXT_TELEMETRY_DISABLED=1 \
+    NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL} \
+    NEXT_PUBLIC_LOCAL_AUTH_TOKEN=${NEXT_PUBLIC_LOCAL_AUTH_TOKEN}
+RUN pnpm --filter @xssploit/dashboard build
+
+FROM base AS runtime
+ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
+COPY --from=build /app/packages/dashboard/.next/standalone ./
+COPY --from=build /app/packages/dashboard/.next/static ./packages/dashboard/.next/static
+COPY --from=build /app/packages/dashboard/public ./packages/dashboard/public
+USER node
+EXPOSE 3000
+CMD ["node", "packages/dashboard/server.js"]

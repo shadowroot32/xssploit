@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>vuln: websocket sink</title></head>
+<body>
+  <h1>Live feed</h1>
+  <div id="feed"></div>
+  <script>
+    // Deliberately vulnerable: websocket message → innerHTML.
+    var feed = document.getElementById('feed');
+    var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    try {
+      var ws = new WebSocket(proto + '://' + location.host + '/feed');
+      ws.onmessage = function (e) { feed.innerHTML += '<p>' + e.data + '</p>'; };
+    } catch (err) { /* no ws server in static mode */ }
+  </script>
+</body>
+</html>

